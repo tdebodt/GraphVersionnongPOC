@@ -38,6 +38,16 @@
     .node.primary{cursor:pointer}
     .node.active rect{fill:#d9f6f2;stroke:#0f897e}
     .edge-essential{stroke:#2791a0;stroke-width:3;fill:none}
+    .edge-essential.is-locked{stroke:#087b73;stroke-width:4.2}
+    .owner-lock-badge rect{fill:#e0f7f0;stroke:#4eae97;stroke-width:1.5}
+    .owner-lock-badge text{fill:#075f54;font-size:12px;font-weight:850}
+    .lock-inspector{margin:0 22px 16px;padding:13px 15px;border:1px solid #b6dfd5;background:#effbf7;border-radius:12px}
+    .lock-inspector[hidden]{display:none}
+    .lock-inspector-title{font-size:13px;font-weight:830;color:#0b6e60;line-height:1.5}
+    .lock-inspector-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}
+    .lock-inspector-item{background:white;border:1px solid #c7e6df;border-radius:8px;padding:8px 10px;font-size:12px;line-height:1.45;color:#386c63;min-width:0}
+    .lock-inspector-item b{display:block;color:#124f48;font-size:13px}
+    .lock-inspector-free{font-size:12px;margin:10px 0 0;color:#566a75;line-height:1.5}
     .edge-optional{stroke:#9aa8b9;stroke-width:2.3;stroke-dasharray:6 6;fill:none}
     .edge-label{font-size:12px;font-weight:780;fill:#277c8a}
     .edge-label.optional{fill:#65758b}
@@ -96,7 +106,7 @@
     .foot{font-size:12px;color:#7c8999;line-height:1.7;margin:18px 0 0}
     code{font-family:ui-monospace,Consolas,monospace}
     @media(max-width:900px){.layout,.lower{grid-template-columns:1fr}.graphs{grid-template-columns:repeat(3,minmax(0,1fr))}}
-    @media(max-width:590px){.wrap{padding:18px 12px 45px}.top{display:block}.pill{margin-top:14px}.card-head,.pane,.side-content,.editor,.audit{padding-left:14px;padding-right:14px}.toolbar{padding-left:14px;padding-right:14px}.graph-area{padding:0 4px}.key{padding-left:14px}.graphs{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.card-head{padding-top:15px}.graph-card svg{min-height:220px}.subtitle{font-size:14px}}
+    @media(max-width:590px){.lock-inspector{margin-left:14px;margin-right:14px}.lock-inspector-list{grid-template-columns:1fr}.wrap{padding:18px 12px 45px}.top{display:block}.pill{margin-top:14px}.card-head,.pane,.side-content,.editor,.audit{padding-left:14px;padding-right:14px}.toolbar{padding-left:14px;padding-right:14px}.graph-area{padding:0 4px}.key{padding-left:14px}.graphs{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.card-head{padding-top:15px}.graph-card svg{min-height:220px}.subtitle{font-size:14px}}
     @media(prefers-reduced-motion:reduce){*{transition:none!important}}
   </style>
 </head>
@@ -136,10 +146,21 @@
           </g>
           <g id="graph-target-nodes"></g>
           <g id="graph-birth-date"></g>
-          <text id="graph-lock" x="65" y="246" class="lock-marker" style="display:none">🔒 Alice : propriétés essentielles verrouillées</text>
+          <g id="graph-lock-overlays" aria-label="Verrous des relations et propriétés"></g>
+          <text id="graph-lock" x="56" y="131" class="lock-marker" style="display:none">🔒 4 propriétés · Agent A</text>
         </svg>
       </div>
-      <div class="key"><span><i></i> Relation essentielle</span><span><i class="optional"></i> Relation indépendante</span><span>🔒 Verrou appliqué à Alice</span></div>
+      <div class="key"><span><i></i> Relation essentielle</span><span><i class="optional"></i> Relation indépendante</span><span>🔒 Propriétaire du verrou : Agent A</span></div>
+      <div class="lock-inspector" id="lock-inspector" hidden aria-live="polite">
+        <div class="lock-inspector-title">🔒 Alice · verrouillage pessimiste détenu par Agent A</div>
+        <div class="lock-inspector-list">
+          <div class="lock-inspector-item"><b>rdf:type</b>🔒 Agent A · type de l’individu</div>
+          <div class="lock-inspector-item"><b>birthDate</b>🔒 Agent A · propriété essentielle</div>
+          <div class="lock-inspector-item"><b>isChildOf</b>🔒 Agent A · relation essentielle</div>
+          <div class="lock-inspector-item"><b>worksFor</b>🔒 Agent A · relation essentielle</div>
+        </div>
+        <p class="lock-inspector-free">○ <strong>marriedTo</strong> n’est pas verrouillée : l’agent B peut la modifier simultanément.</p>
+      </div>
       <div class="toolbar">
         <button class="btn primary" id="lock">🔒 Travailler sur Alice</button>
         <button class="btn" id="view-current">Vue actuelle</button>
@@ -321,12 +342,19 @@
     if(label!==undefined)e.textContent=label;
     parent.appendChild(e);return e;
   }
+  function ownerBadge(parent,x,y,width,property){
+    var g=addSvg(parent,'g',{'class':'owner-lock-badge','aria-label':property+' : verrouillé par Agent A'});
+    addSvg(g,'title',{},property+' verrouillé par Agent A');
+    addSvg(g,'rect',{x:x,y:y,width:width,height:22,rx:8});
+    addSvg(g,'text',{x:x+width/2,y:y+15,'text-anchor':'middle'},'🔒 Agent A');
+  }
   function visual(){
     var triples = view==='working'?proposed():current();
     var edges = document.getElementById('graph-edges');
     var targets = document.getElementById('graph-target-nodes');
     var dateBox = document.getElementById('graph-birth-date');
-    edges.replaceChildren(); targets.replaceChildren(); dateBox.replaceChildren();
+    var overlays=document.getElementById('graph-lock-overlays');
+    edges.replaceChildren(); targets.replaceChildren(); dateBox.replaceChildren(); overlays.replaceChildren();
     var destinations={
       Mary:{y:76,label:'Mary',subtitle:'Person'},
       Sam:{y:315,label:'Sam',subtitle:'Person'},
@@ -344,9 +372,14 @@
       var pos=destinations[dest];if(!pos)return;
       var fromY=r.p==='isChildOf'?168:r.p==='worksFor'?189:207;
       var startX=234, endX=505, endY=pos.y+17;
-      addSvg(edges,'path',{d:'M'+startX+' '+fromY+' C342 '+fromY+' 392 '+endY+' '+endX+' '+endY,'class':r.essential?'edge-essential':'edge-optional','marker-end':r.essential?'url(#arrow-essential)':'url(#arrow-optional)'});
+      addSvg(edges,'path',{d:'M'+startX+' '+fromY+' C342 '+fromY+' 392 '+endY+' '+endX+' '+endY,'class':r.essential?(locked?'edge-essential is-locked':'edge-essential'):'edge-optional','marker-end':r.essential?'url(#arrow-essential)':'url(#arrow-optional)'});
       var labelY = r.p==='isChildOf'?101:r.p==='worksFor'?(dest==='OrgA'?177:239):315;
       addSvg(edges,'text',{x:348,y:labelY,'text-anchor':'middle','class':'edge-label'+(r.essential?'':' optional')},r.label);
+      if(locked && r.essential){
+        // Le propriétaire est affiché sur CHAQUE relation essentielle.
+        var badgeY=r.p==='isChildOf'?118:(dest==='OrgA'?203:248);
+        ownerBadge(overlays,302,badgeY,126,r.p);
+      }
     });
     // Ne dessiner que les cibles effectivement utilisées : les ressources non reliées
     // continuent pourtant d'exister dans les triples du graphe.
@@ -362,9 +395,14 @@
     addSvg(dateBox,'rect',{x:87,y:268,width:132,height:34,rx:9,fill:'#e3f1f5',stroke:'#bfdae2'});
     addSvg(dateBox,'text',{x:153,y:282,'text-anchor':'middle','font-size':10,fill:'#4b6c7b'},'birthDate');
     addSvg(dateBox,'text',{x:153,y:295,'text-anchor':'middle','font-size':12,'font-weight':700,fill:'#206a78'},birth||'non précisée');
+    if(locked){
+      // La propriété de donnée birthDate et le type sont également réservés.
+      ownerBadge(overlays,83,306,140,'birthDate');
+      ownerBadge(overlays,83,230,140,'rdf:type');
+    }
     document.getElementById('alice-node').setAttribute('class','node primary'+(locked?' active':''));
     document.getElementById('graph-lock').style.display=locked?'block':'none';
-    text('boundary-label',locked?'Frontière d’intégrité verrouillée : Alice':'Frontière d’intégrité : Alice');
+    text('boundary-label',locked?'Frontière d’intégrité · Agent A':'Frontière d’intégrité : Alice');
   }
   function diff(){
     if(!locked)return [];
@@ -399,7 +437,8 @@
     document.getElementById('lock').textContent=locked?'🔒 Alice verrouillée':'🔒 Travailler sur Alice';
     var st=document.getElementById('lock-status');
     st.className='state'+(locked?' locked':'');
-    st.textContent=locked?'🔒 Agent A détient le verrou Alice (type + propriétés essentielles). Les propriétés indépendantes restent libres.':'○ Aucun verrou actif. Toutes les assertions sont dans le graphe principal.';
+    st.textContent=locked?'🔒 Agent A détient le verrou Alice (rdf:type, birthDate, isChildOf, worksFor). marriedTo reste libre.':'○ Aucun verrou actif. Toutes les assertions sont dans le graphe principal.';
+    document.getElementById('lock-inspector').hidden=!locked;
     var changeList=document.getElementById('change-list');changeList.replaceChildren();
     var changes=diff();
     if(changes.length===0){var li=document.createElement('li');li.textContent='Aucune différence dans les propriétés essentielles.';changeList.appendChild(li);}
