@@ -20,6 +20,9 @@
     .muted{color:#637287}
     .subtitle{margin:0;line-height:1.55;max-width:820px}
     .pill{display:inline-flex;align-items:center;gap:7px;border:1px solid #c8e4dd;background:#eaf9f4;border-radius:40px;padding:9px 13px;color:#126550;font-size:12px;font-weight:750;white-space:nowrap}
+    .app-version{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 12px;padding:8px 12px;border:1px solid #b6d9e7;background:#eaf6fd;color:#145f7e;font-weight:750;border-radius:9px;font-size:13px}
+    .app-version strong{font-weight:900}
+    .app-version small{font-weight:500;color:#59788c}
     .dot{width:8px;height:8px;border-radius:100%;background:#20a87c;display:inline-block}
     .layout{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(295px,.95fr);gap:16px}
     .card{background:white;border:1px solid #e1e8f0;border-radius:17px;box-shadow:0 3px 16px rgba(22,37,58,.035);min-width:0}
@@ -49,6 +52,9 @@
     .lock-inspector-item b{display:block;color:#124f48;font-size:13px}
     .lock-inspector-free{font-size:12px;margin:10px 0 0;color:#566a75;line-height:1.5}
     .edge-optional{stroke:#9aa8b9;stroke-width:2.3;stroke-dasharray:6 6;fill:none}
+    .edge-optional.agent-b-change{stroke:#9675c9;stroke-width:3.2;stroke-dasharray:7 4}
+    .owner-b-badge rect{fill:#f3ecff;stroke:#b69bdb;stroke-width:1.5}
+    .owner-b-badge text{fill:#684c99;font-size:12px;font-weight:850}
     .edge-label{font-size:12px;font-weight:780;fill:#277c8a}
     .edge-label.optional{fill:#65758b}
     .lock-marker{fill:#087b73;font-size:12px;font-weight:900}
@@ -56,6 +62,7 @@
     .key span{display:inline-flex;align-items:center;gap:7px}
     .key i{width:19px;border-top:3px solid #2791a0;display:inline-block}
     .key i.optional{border-top:2px dashed #9aa8b9}
+    .key i.agent-b{border-top:3px dashed #9675c9}
     .toolbar{display:flex;gap:9px;flex-wrap:wrap;padding:0 22px 21px}
     .btn{border:1px solid #ccd9e6;border-radius:9px;padding:11px 14px;min-height:43px;background:#fff;color:#24364a;font-size:13px;font-weight:730;transition:background .15s ease}
     .btn:hover:not(:disabled){background:#f0f6fc}
@@ -79,7 +86,7 @@
     .triple{font:12px/1.5 ui-monospace,Consolas,Menlo,monospace;border:1px solid #e4ebf2;background:#f8fafc;border-radius:8px;padding:8px 10px;overflow-wrap:anywhere}
     .triple strong{color:#1e7b85;font-weight:730}
     .empty{color:#9ba8b6;font-size:13px;padding:10px 0}
-    .graphs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+    .graphs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
     .graph-box{min-width:0;background:#fbfcfe;border:1px solid #e2e8f0;border-radius:10px;padding:11px}
     .graph-box h3{margin:0 0 4px;font-size:12px}
     .graph-box .smallnote{color:#8290a0;font-size:11px;margin-bottom:9px}
@@ -105,7 +112,7 @@
     .toast[hidden]{display:none}
     .foot{font-size:12px;color:#7c8999;line-height:1.7;margin:18px 0 0}
     code{font-family:ui-monospace,Consolas,monospace}
-    @media(max-width:900px){.layout,.lower{grid-template-columns:1fr}.graphs{grid-template-columns:repeat(3,minmax(0,1fr))}}
+    @media(max-width:900px){.layout,.lower{grid-template-columns:1fr}.graphs{grid-template-columns:repeat(2,minmax(0,1fr))}}
     @media(max-width:590px){.lock-inspector{margin-left:14px;margin-right:14px}.lock-inspector-list{grid-template-columns:1fr}.wrap{padding:18px 12px 45px}.top{display:block}.pill{margin-top:14px}.card-head,.pane,.side-content,.editor,.audit{padding-left:14px;padding-right:14px}.toolbar{padding-left:14px;padding-right:14px}.graph-area{padding:0 4px}.key{padding-left:14px}.graphs{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.card-head{padding-top:15px}.graph-card svg{min-height:220px}.subtitle{font-size:14px}}
     @media(prefers-reduced-motion:reduce){*{transition:none!important}}
   </style>
@@ -115,6 +122,7 @@
   <header class="top">
     <div>
       <p class="eyebrow">Semantical / Interactive lab / POC 01</p>
+      <div class="app-version" id="app-version" aria-label="Version de l’application">Application <strong>v0.3.0</strong> <small>· 3 vues indépendantes</small></div>
       <h1>Versionner un knowledge graph<br>sans dupliquer le graphe</h1>
       <p class="subtitle muted">Démonstration locale d'un verrouillage pessimiste piloté par l'ontologie. Sélectionne Alice, déplace ses assertions essentielles et explore deux vues RDF cohérentes.</p>
     </div>
@@ -127,7 +135,7 @@
     <article class="card graph-card">
       <div class="card-head">
         <div><h2>Knowledge graph — vue logique</h2><p>Clique sur Alice pour démarrer une modification, ou utilise le bouton ci-dessous.</p></div>
-        <span id="view-label" class="counter">Version publiée · v100</span>
+        <span id="view-label" class="counter">Version du graphe : v100</span>
       </div>
       <div class="graph-area">
         <svg viewBox="0 0 700 385" role="img" aria-label="Réseau RDF interactif comprenant Alice, Mary, deux organisations et John ou Sam">
@@ -150,7 +158,7 @@
           <text id="graph-lock" x="56" y="131" class="lock-marker" style="display:none">🔒 4 propriétés · Agent A</text>
         </svg>
       </div>
-      <div class="key"><span><i></i> Relation essentielle</span><span><i class="optional"></i> Relation indépendante</span><span>🔒 Propriétaire du verrou : Agent A</span></div>
+      <div class="key"><span><i></i> Relation essentielle</span><span><i class="optional"></i> Relation indépendante</span><span><i class="agent-b"></i> Modification proposée par B</span><span>🔒 Propriétaire du verrou : Agent A</span></div>
       <div class="lock-inspector" id="lock-inspector" hidden aria-live="polite">
         <div class="lock-inspector-title">🔒 Alice · verrouillage pessimiste détenu par Agent A</div>
         <div class="lock-inspector-list">
@@ -164,7 +172,8 @@
       <div class="toolbar">
         <button class="btn primary" id="lock">🔒 Travailler sur Alice</button>
         <button class="btn" id="view-current">Vue actuelle</button>
-        <button class="btn" id="view-working">Vue modifiée</button>
+        <button class="btn" id="view-working">Vue Agent A</button>
+        <button class="btn" id="view-b">Vue Agent B</button>
         <button class="btn" id="reset">Réinitialiser</button>
       </div>
     </article>
@@ -189,20 +198,21 @@
     <article class="card">
       <div class="card-head">
         <div><h2>Stockage RDF : trois graphes nommés</h2><p>Les triplets essentiels sont retirés du principal, conservés intacts dans l'original et copiés dans le travail.</p></div>
-        <span id="counts" class="counter">10 / 0 / 0</span>
+        <span id="counts" class="counter">10 / 0 / 0 / 0</span>
       </div>
       <div class="pane">
         <div class="graphs">
           <section class="graph-box"><h3>G principal</h3><div class="smallnote" id="count-main">10 triplets</div><div id="triples-main"></div></section>
           <section class="graph-box"><h3>G original</h3><div class="smallnote" id="count-original">0 triplet</div><div id="triples-original"></div></section>
-          <section class="graph-box"><h3>G travail</h3><div class="smallnote" id="count-work">0 triplet</div><div id="triples-work"></div></section>
+          <section class="graph-box"><h3>G travail A</h3><div class="smallnote" id="count-work">0 triplet</div><div id="triples-work"></div></section>
+          <section class="graph-box"><h3>G travail B · delta</h3><div class="smallnote" id="count-b">0 triplet</div><div id="triples-b"></div></section>
         </div>
-        <p class="hint">Vue actuelle = G principal ∪ G original · Vue modifiée = G principal ∪ G travail. Les IRIs Alice, Mary et OrgA restent des ressources valides, même lorsque leurs assertions se trouvent dans des graphes différents.</p>
+        <p class="hint">Vue actuelle = G principal ∪ G original · Vue A = G principal ∪ G travail A · Vue B = (G principal ∪ G original), avec les triplets remplacés par le delta B. Le graphe principal reste inchangé tant que les propositions ne sont pas fusionnées. Les IRIs restent utilisables dans toutes les vues.</p>
       </div>
     </article>
     <article class="card">
       <div class="card-head">
-        <div><h2>Vue combinée et différences</h2><p id="combined-caption">Toutes les assertions publiées.</p></div>
+        <div><h2>Vue combinée et différences</h2><p id="combined-caption">Vue actuelle publiée, ou proposition indépendante des agents A et B.</p></div>
         <span class="counter" id="combined-count">10 triplets</span>
       </div>
       <div class="pane">
@@ -241,12 +251,16 @@
       </div>
     </article>
     <article class="card">
-      <div class="card-head"><div><h2>Agent B — modification concurrente</h2><p>Teste la frontière de verrouillage pendant qu'Alice est en cours d'édition.</p></div></div>
+      <div class="card-head"><div><h2>Agent B — modification concurrente</h2><p>Prépare une proposition indépendante. Seule sa vue montre les changements non fusionnés.</p></div></div>
       <div class="pane">
         <button class="btn" id="agent-marriage">Modifier Alice marriedTo :John → :Sam</button>
-        <p class="hint" style="margin:8px 0 15px">Non essentielle : autorisée. Le changement est écrit dans G principal et visible dans les deux vues.</p>
+        <p class="hint" style="margin:8px 0 15px">Non essentielle : autorisée. La modification est stockée dans G travail B, sans toucher au graphe publié ni à la proposition A.</p>
         <button class="btn danger" id="agent-work">Tenter de modifier Alice worksFor</button>
-        <p class="hint" style="margin:8px 0 15px">Essentielle : bloquée si Alice est verrouillée, même si l'agent utilise un autre graphe de travail.</p>
+        <p class="hint" style="margin:8px 0 15px">Essentielle : bloquée si Alice est verrouillée par A. Sans verrou, B doit d'abord réserver cette frontière d'intégrité.</p>
+        <div class="editor-actions" style="margin:0 0 13px">
+          <button class="btn primary" id="merge-b" disabled>✓ Fusionner B</button>
+          <button class="btn" id="discard-b" disabled>Annuler B</button>
+        </div>
         <div class="callout" id="agent-result">Commence par verrouiller Alice, puis essaye les deux opérations de l'agent B.</div>
       </div>
     </article>
@@ -290,7 +304,7 @@
     ];
   }
 
-  var main, original, working, locked, view, undoStack, events, version;
+  var main, original, working, workingB, bBaseValues, locked, view, undoStack, events, version;
   function clone(xs){return xs.map(function(t){return triple(t.s,t.p,t.o,t.literal);});}
   function essentials(type){
     var result = new Set(), seen = new Set();
@@ -309,7 +323,16 @@
     return t.s===scope && (t.p==='rdf:type' || essentials(aliceType()).has(t.p));
   }
   function current(){return main.concat(original);}
-  function proposed(){return locked ? main.concat(working) : clone(main);}
+  function proposed(){return locked ? main.concat(working) : current();}
+  function agentBProposed(){
+    // Les assertions B remplacent uniquement les couples sujet–prédicat modifiés
+    // dans sa propre vue ; elles ne sont JAMAIS enregistrées dans G principal.
+    var keys=new Set(workingB.map(function(t){return t.s+'|'+t.p;}));
+    return current().filter(function(t){return !keys.has(t.s+'|'+t.p);}).concat(clone(workingB));
+  }
+  function selectedTriples(){
+    return view==='agentA' ? proposed() : view==='agentB' ? agentBProposed() : current();
+  }
   function getProp(ts,s,p){return ts.find(function(t){return t.s===s&&t.p===p;});}
   function getValue(ts,s,p){var t=getProp(ts,s,p);return t?t.o:'';}
   function text(id,value){document.getElementById(id).textContent=value;}
@@ -349,7 +372,7 @@
     addSvg(g,'text',{x:x+width/2,y:y+15,'text-anchor':'middle'},'🔒 Agent A');
   }
   function visual(){
-    var triples = view==='working'?proposed():current();
+    var triples = selectedTriples();
     var edges = document.getElementById('graph-edges');
     var targets = document.getElementById('graph-target-nodes');
     var dateBox = document.getElementById('graph-birth-date');
@@ -372,13 +395,18 @@
       var pos=destinations[dest];if(!pos)return;
       var fromY=r.p==='isChildOf'?168:r.p==='worksFor'?189:207;
       var startX=234, endX=505, endY=pos.y+17;
-      addSvg(edges,'path',{d:'M'+startX+' '+fromY+' C342 '+fromY+' 392 '+endY+' '+endX+' '+endY,'class':r.essential?(locked?'edge-essential is-locked':'edge-essential'):'edge-optional','marker-end':r.essential?'url(#arrow-essential)':'url(#arrow-optional)'});
+      addSvg(edges,'path',{d:'M'+startX+' '+fromY+' C342 '+fromY+' 392 '+endY+' '+endX+' '+endY,'class':r.essential?(locked?'edge-essential is-locked':'edge-essential'):(view==='agentB'&&workingB.some(function(t){return t.s==='Alice'&&t.p===r.p;})?'edge-optional agent-b-change':'edge-optional'),'marker-end':r.essential?'url(#arrow-essential)':'url(#arrow-optional)'});
       var labelY = r.p==='isChildOf'?101:r.p==='worksFor'?(dest==='OrgA'?177:239):315;
       addSvg(edges,'text',{x:348,y:labelY,'text-anchor':'middle','class':'edge-label'+(r.essential?'':' optional')},r.label);
       if(locked && r.essential){
         // Le propriétaire est affiché sur CHAQUE relation essentielle.
         var badgeY=r.p==='isChildOf'?118:(dest==='OrgA'?203:248);
         ownerBadge(overlays,302,badgeY,126,r.p);
+      }
+      if(view==='agentB' && !r.essential && workingB.some(function(t){return t.s==='Alice'&&t.p===r.p;})){
+        var badge=addSvg(overlays,'g',{'class':'owner-b-badge','aria-label':r.p+' : proposition Agent B'});
+        addSvg(badge,'rect',{x:300,y:329,width:130,height:22,rx:8});
+        addSvg(badge,'text',{x:365,y:344,'text-anchor':'middle'},'✎ Agent B');
       }
     });
     // Ne dessiner que les cibles effectivement utilisées : les ressources non reliées
@@ -417,31 +445,41 @@
     text('count-main',main.length+' triplets');
     text('count-original',original.length+' triplets');
     text('count-work',working.length+' triplets');
-    text('counts',main.length+' / '+original.length+' / '+working.length);
-    text('version','Version v'+version);
+    text('count-b',workingB.length+' triplets');
+    text('counts',main.length+' / '+original.length+' / '+working.length+' / '+workingB.length);
+    text('version','Version du graphe v'+version);
     fillTriples('triples-main',main);
     fillTriples('triples-original',original);
     fillTriples('triples-work',working);
-    var shown=view==='working'?proposed():current();
+    fillTriples('triples-b',workingB);
+    var shown=selectedTriples();
     text('combined-count',shown.length+' triplets');
-    text('combined-caption',view==='working'&&locked?'G principal ∪ G travail (proposition)':'G principal ∪ G original (état publié)');
-    text('view-label',(view==='working'&&locked?'Travail non fusionné':'Version publiée')+' · v'+version);
+    text('combined-caption',view==='agentA' ? 'Agent A : G principal ∪ G travail A (proposition non publiée)'
+      : view==='agentB' ? 'Agent B : (G principal ∪ G original) avec remplacement local des assertions de B'
+      : 'G principal ∪ G original (version publiée)');
+    text('view-label',(view==='agentA'?'Proposition Agent A':view==='agentB'?'Proposition Agent B':'Vue publiée')+' · graphe v'+version);
     fillTriples('combined-triples',shown);
     document.getElementById('view-current').classList.toggle('selected',view==='current');
-    document.getElementById('view-working').classList.toggle('selected',view==='working');
+    document.getElementById('view-working').classList.toggle('selected',view==='agentA');
+    document.getElementById('view-b').classList.toggle('selected',view==='agentB');
     setControl('view-working',locked);
     setControl('lock',!locked);
     setControl('apply',locked);
     setControl('undo',locked&&undoStack.length>0);
     setControl('merge',locked);
+    setControl('merge-b',workingB.length>0);
+    setControl('discard-b',workingB.length>0);
     document.getElementById('lock').textContent=locked?'🔒 Alice verrouillée':'🔒 Travailler sur Alice';
     var st=document.getElementById('lock-status');
     st.className='state'+(locked?' locked':'');
     st.textContent=locked?'🔒 Agent A détient le verrou Alice (rdf:type, birthDate, isChildOf, worksFor). marriedTo reste libre.':'○ Aucun verrou actif. Toutes les assertions sont dans le graphe principal.';
     document.getElementById('lock-inspector').hidden=!locked;
     var changeList=document.getElementById('change-list');changeList.replaceChildren();
-    var changes=diff();
-    if(changes.length===0){var li=document.createElement('li');li.textContent='Aucune différence dans les propriétés essentielles.';changeList.appendChild(li);}
+    var changes=diff().map(function(x){return 'Agent A · '+x;});
+    workingB.forEach(function(t){
+      changes.push('Agent B · '+t.s+'.'+t.p+' : '+(bBaseValues[t.s+'|'+t.p]||'∅')+' → '+t.o);
+    });
+    if(changes.length===0){var li=document.createElement('li');li.textContent='Aucune différence non publiée.';changeList.appendChild(li);}
     else changes.forEach(function(v){var li=document.createElement('li');li.textContent=v;changeList.appendChild(li);});
     var audit=document.getElementById('audit');audit.replaceChildren();
     if(events.length===0){var placeholder=document.createElement('p');placeholder.className='empty';placeholder.textContent='Aucune opération pour le moment.';audit.appendChild(placeholder);}
@@ -452,7 +490,7 @@
     });
     visual();
   }
-  function syncEditor(){
+    function syncEditor(){
     document.getElementById('edit-work').value=getValue(working,'Alice','worksFor')||'OrgA';
     document.getElementById('edit-birth').value=getValue(working,'Alice','birthDate')||'';
     document.getElementById('edit-parent').value=getValue(working,'Alice','isChildOf')||'Mary';
@@ -465,7 +503,7 @@
     main=main.filter(function(t){return !isEssential(t,'Alice');});
     original=clone(pulled);
     working=clone(pulled);
-    locked=true;view='working';undoStack=[];
+    locked=true;view='agentA';undoStack=[];
     syncEditor();
     event('Agent A : verrouillage d’Alice. '+pulled.length+' assertions essentielles déplacées de G principal vers G original et copiées dans G travail.');
     notify('Alice est verrouillée. Les triplets birthDate, isChildOf, worksFor et rdf:type ont été isolés.');
@@ -490,7 +528,7 @@
       working.push(triple('Alice',d.p,d.o,d.literal));
     });
     event('Agent A : '+changes.map(function(d){return d.p+' = '+d.o;}).join(', ')+' (G travail uniquement).');
-    view='working';notify(changes.length+' propriété(s) mise(s) à jour dans G travail ; G original reste intact.');
+    view='agentA';notify(changes.length+' propriété(s) mise(s) à jour dans G travail ; G original reste intact.');
     render();
   }
   function undo(){
@@ -512,43 +550,74 @@
     render();
   }
   function agentMarriage(){
-    var old=getValue(main,'Alice','marriedTo');
+    var published=getValue(current(),'Alice','marriedTo');
+    var old=getValue(agentBProposed(),'Alice','marriedTo');
     var next=old==='John'?'Sam':'John';
-    main=main.filter(function(t){return !(t.s==='Alice'&&t.p==='marriedTo');});
-    main.push(triple('Alice','marriedTo',next));
-    var msg='Agent B : marriedTo modifié de '+old+' vers '+next+' dans G principal (autorisé : indépendant du verrou).';
-    event(msg);text('agent-result',msg);notify('Agent B : modification indépendante acceptée, visible dans les deux vues.');render();
+    var key='Alice|marriedTo';
+    if(!Object.prototype.hasOwnProperty.call(bBaseValues,key)) bBaseValues[key]=published;
+    workingB=workingB.filter(function(t){return !(t.s==='Alice'&&t.p==='marriedTo');});
+    if(next!==published){
+      workingB.push(triple('Alice','marriedTo',next));
+    }else{
+      delete bBaseValues[key];
+    }
+    view='agentB';
+    var msg='Agent B : proposition indépendante Alice.marriedTo '+old+' → '+next+' dans G travail B. G principal inchangé.';
+    event(msg);text('agent-result',msg);
+    notify('Agent B : changement enregistré uniquement dans sa vue. Compare avec « Vue actuelle » et « Vue Agent A ».');render();
   }
   function agentEssential(){
-    if(locked){
-      var msg='Agent B : tentative de modifier Alice.worksFor REFUSÉE : Alice et ses propriétés essentielles sont verrouillées par Agent A.';
-      event(msg,true);text('agent-result',msg);notify(msg,true);render();return;
+    var msg=locked
+      ? 'Agent B : modification de Alice.worksFor REFUSÉE. Verrou pessimiste détenu par Agent A.'
+      : 'Agent B : modification essentielle non autorisée sans réservation de la frontière d’intégrité d’Alice.';
+    event(msg,true);text('agent-result',msg);notify(msg,true);render();
+  }
+  function mergeB(){
+    if(!workingB.length)return;
+    var conflict=workingB.some(function(t){
+      return getValue(current(),t.s,t.p)!==bBaseValues[t.s+'|'+t.p];
+    });
+    if(conflict){
+      var error='Fusion B bloquée : la valeur publiée a changé depuis la création du brouillon B.';
+      event(error,true);text('agent-result',error);notify(error,true);render();return;
     }
-    var old=getValue(main,'Alice','worksFor');
-    var next=old==='OrgA'?'OrgB':'OrgA';
-    main=main.filter(function(t){return !(t.s==='Alice'&&t.p==='worksFor');});
-    main.push(triple('Alice','worksFor',next));
-    version++;
-    var msg='Agent B : worksFor '+old+' → '+next+' (autorisé : aucun verrou actif). v'+version+'.';
-    event(msg);text('agent-result',msg);notify(msg);render();
+    var changes=workingB.map(function(t){return t.s+'.'+t.p+' → '+t.o;});
+    var keys=new Set(workingB.map(function(t){return t.s+'|'+t.p;}));
+    main=main.filter(function(t){return !keys.has(t.s+'|'+t.p);}).concat(clone(workingB));
+    workingB=[];bBaseValues={};version++;view='current';
+    var msg='Agent B : fusion v'+version+' ('+changes.join(', ')+'). Agent A conserve son verrou éventuel.';
+    event(msg);text('agent-result',msg);
+    notify('Fusion B publiée en v'+version+'. La modification A, si ouverte, reste indépendante et visible dans sa propre vue.');
+    render();
+  }
+  function discardB(){
+    if(!workingB.length)return;
+    workingB=[];bBaseValues={};view='current';
+    event('Agent B : proposition abandonnée. G principal reste inchangé.');
+    text('agent-result','Agent B : proposition abandonnée.');
+    notify('Le brouillon B a été abandonné. Aucun changement publié.');
+    render();
   }
   function reset(){
-    main=seed();original=[];working=[];locked=false;view='current';undoStack=[];events=[];version=100;
+    main=seed();original=[];working=[];workingB=[];bBaseValues={};locked=false;view='current';undoStack=[];events=[];version=100;
     document.getElementById('agent-result').textContent='Commence par verrouiller Alice, puis essaye les deux opérations de l’agent B.';
     document.getElementById('change-reason').value='Mettre à jour les informations essentielles d’Alice';
     document.getElementById('notice').hidden=true;
     render();
   }
-  document.getElementById('lock').addEventListener('click',start);
+    document.getElementById('lock').addEventListener('click',start);
   document.getElementById('alice-node').addEventListener('click',start);
   document.getElementById('alice-node').addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();start();}});
   document.getElementById('view-current').addEventListener('click',function(){view='current';render();});
-  document.getElementById('view-working').addEventListener('click',function(){if(locked){view='working';render();}});
+  document.getElementById('view-working').addEventListener('click',function(){if(locked){view='agentA';render();}});
+  document.getElementById('view-b').addEventListener('click',function(){view='agentB';render();});
   document.getElementById('apply').addEventListener('click',update);
   document.getElementById('undo').addEventListener('click',undo);
   document.getElementById('merge').addEventListener('click',merge);
   document.getElementById('agent-marriage').addEventListener('click',agentMarriage);
   document.getElementById('agent-work').addEventListener('click',agentEssential);
+  document.getElementById('merge-b').addEventListener('click',mergeB);
+  document.getElementById('discard-b').addEventListener('click',discardB);
   document.getElementById('reset').addEventListener('click',reset);
   reset();
 })();
