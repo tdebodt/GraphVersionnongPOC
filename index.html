@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Semantical Lab — Graph Versioning POC</title>
+  <style>
+    :root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#182638;background:#f3f6fa;font-synthesis:none}
+    *{box-sizing:border-box}
+    body{margin:0}
+    button,input,select{font:inherit}
+    button{cursor:pointer}
+    button:disabled{opacity:.45;cursor:not-allowed}
+    button:focus-visible,input:focus-visible,select:focus-visible,[role=button]:focus-visible{outline:3px solid #45a9dd;outline-offset:3px}
+    .wrap{max-width:1280px;padding:28px 24px 70px;margin:0 auto}
+    .top{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:25px}
+    .eyebrow{font-size:12px;letter-spacing:.13em;font-weight:850;color:#267b88;text-transform:uppercase;margin:0 0 8px}
+    h1{font-size:clamp(26px,3.5vw,38px);line-height:1.17;letter-spacing:-.045em;margin:0 0 10px}
+    .muted{color:#637287}
+    .subtitle{margin:0;line-height:1.55;max-width:820px}
+    .pill{display:inline-flex;align-items:center;gap:7px;border:1px solid #c8e4dd;background:#eaf9f4;border-radius:40px;padding:9px 13px;color:#126550;font-size:12px;font-weight:750;white-space:nowrap}
+    .dot{width:8px;height:8px;border-radius:100%;background:#20a87c;display:inline-block}
+    .layout{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(295px,.95fr);gap:16px}
+    .card{background:white;border:1px solid #e1e8f0;border-radius:17px;box-shadow:0 3px 16px rgba(22,37,58,.035);min-width:0}
+    .card-head{padding:20px 22px 13px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+    .card-head h2{font-size:17px;margin:0 0 5px;letter-spacing:-.01em}
+    .card-head p{font-size:13px;line-height:1.5;margin:0;color:#637287}
+    .graph-card{overflow:hidden}
+    .graph-area{padding:0 16px 2px}
+    svg{width:100%;height:auto;display:block}
+    .graph-bg{fill:#fafcff}
+    .graph-border{fill:none;stroke:#dde7f0;stroke-dasharray:5 5}
+    .node rect{fill:#fff;stroke:#c8d6e4;stroke-width:1.7}
+    .node text{fill:#26384c;font-weight:700}
+    .node .small{font-size:11px;fill:#718096;font-weight:500}
+    .node.primary rect{fill:#ebf8fa;stroke:#238d99;stroke-width:2.4}
+    .node.primary{cursor:pointer}
+    .node.active rect{fill:#d9f6f2;stroke:#0f897e}
+    .edge-essential{stroke:#2791a0;stroke-width:3;fill:none}
+    .edge-optional{stroke:#9aa8b9;stroke-width:2.3;stroke-dasharray:6 6;fill:none}
+    .edge-label{font-size:12px;font-weight:780;fill:#277c8a}
+    .edge-label.optional{fill:#65758b}
+    .lock-marker{fill:#087b73;font-size:12px;font-weight:900}
+    .key{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:0 22px 18px;font-size:12px;color:#64748b}
+    .key span{display:inline-flex;align-items:center;gap:7px}
+    .key i{width:19px;border-top:3px solid #2791a0;display:inline-block}
+    .key i.optional{border-top:2px dashed #9aa8b9}
+    .toolbar{display:flex;gap:9px;flex-wrap:wrap;padding:0 22px 21px}
+    .btn{border:1px solid #ccd9e6;border-radius:9px;padding:11px 14px;min-height:43px;background:#fff;color:#24364a;font-size:13px;font-weight:730;transition:background .15s ease}
+    .btn:hover:not(:disabled){background:#f0f6fc}
+    .btn.primary{background:#176e79;color:#fff;border-color:#176e79}
+    .btn.primary:hover:not(:disabled){background:#0d5b64}
+    .btn.danger{background:#fff;border-color:#e6b5b5;color:#9a3c3c}
+    .btn.selected{background:#e5f5f4;border-color:#66aaa7;color:#0b695f}
+    .side-content{padding:0 22px 22px}
+    .label{font-size:11px;color:#8190a1;text-transform:uppercase;letter-spacing:.09em;font-weight:850;margin:13px 0 7px}
+    .ontology-row{border-left:3px solid #c1dfe4;padding:1px 0 1px 11px;margin:11px 0}
+    .ontology-row strong{font-size:13px}
+    .ontology-row code{display:block;margin-top:6px;font-size:12px;color:#386c7c;white-space:normal;overflow-wrap:anywhere;line-height:1.5}
+    .chip{display:inline-flex;margin:4px 5px 0 0;border:1px solid #bedee4;background:#edf8fa;border-radius:20px;padding:6px 9px;font-size:12px;font-weight:650;color:#286978}
+    .chip.neutral{border-color:#dce2ec;background:#f5f7f9;color:#65758b}
+    .state{display:flex;align-items:center;gap:8px;margin-top:19px;padding:12px;border:1px solid #d5e2e9;border-radius:10px;background:#f6fafc;color:#426276;font-size:13px;line-height:1.5}
+    .state.locked{background:#eaf9f5;border-color:#b9e5d9;color:#0e6c57}
+    .lower{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px;margin-top:16px}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap}
+    .pane{padding:0 22px 20px}
+    .triples{margin-top:12px;display:grid;gap:7px;max-height:300px;overflow:auto}
+    .triple{font:12px/1.5 ui-monospace,Consolas,Menlo,monospace;border:1px solid #e4ebf2;background:#f8fafc;border-radius:8px;padding:8px 10px;overflow-wrap:anywhere}
+    .triple strong{color:#1e7b85;font-weight:730}
+    .empty{color:#9ba8b6;font-size:13px;padding:10px 0}
+    .graphs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+    .graph-box{min-width:0;background:#fbfcfe;border:1px solid #e2e8f0;border-radius:10px;padding:11px}
+    .graph-box h3{margin:0 0 4px;font-size:12px}
+    .graph-box .smallnote{color:#8290a0;font-size:11px;margin-bottom:9px}
+    .graph-box .triple{font-size:10px;line-height:1.35;padding:6px 7px;margin-bottom:5px;letter-spacing:-.015em}
+    .hint{margin:13px 0 0;color:#64748b;font-size:12px;line-height:1.55}
+    .editor{padding:0 22px 21px}
+    .form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+    label.field{font-size:12px;font-weight:730;color:#41566d;display:block}
+    select,input[type=text],input[type=date]{display:block;width:100%;height:42px;border-radius:9px;border:1px solid #cfdbe7;margin-top:7px;padding:9px 10px;background:white;color:#192e43;min-width:0}
+    .editor-actions{margin-top:14px;display:flex;gap:9px;flex-wrap:wrap}
+    .counter{font-size:12px;padding:7px 10px;border-radius:16px;background:#f0f4f9;color:#4e6478}
+    .changes{font-size:12px;line-height:1.6;color:#4c6075;list-style:none;margin:0;padding:0}
+    .changes li{padding:7px 0;border-bottom:1px solid #edf1f5}
+    .changes li:last-child{border:none}
+    .changes li::before{content:"→";color:#169087;margin-right:8px;font-weight:900}
+    .audit{padding:0 22px 20px;max-height:270px;overflow:auto}
+    .audit-item{display:flex;gap:9px;margin:9px 0;font-size:12px;line-height:1.5}
+    .audit-item .bullet{background:#dbeeea;color:#0c6b5a;border-radius:50%;flex:none;width:21px;height:21px;display:grid;place-items:center;font-size:11px;font-weight:800}
+    .audit-item.blocked .bullet{background:#fdf0e3;color:#a45219}
+    .callout{padding:12px 14px;border:1px solid #d4e6ec;background:#f3faff;border-radius:10px;font-size:13px;line-height:1.55;color:#426277}
+    .toast{margin:16px 0;padding:13px 15px;background:#f0faf7;border:1px solid #a4dccf;color:#116b56;border-radius:12px;font-size:13px;line-height:1.5}
+    .toast.warn{background:#fff7ed;border-color:#f6d4a5;color:#924a21}
+    .toast[hidden]{display:none}
+    .foot{font-size:12px;color:#7c8999;line-height:1.7;margin:18px 0 0}
+    code{font-family:ui-monospace,Consolas,monospace}
+    @media(max-width:900px){.layout,.lower{grid-template-columns:1fr}.graphs{grid-template-columns:repeat(3,minmax(0,1fr))}}
+    @media(max-width:590px){.wrap{padding:18px 12px 45px}.top{display:block}.pill{margin-top:14px}.card-head,.pane,.side-content,.editor,.audit{padding-left:14px;padding-right:14px}.toolbar{padding-left:14px;padding-right:14px}.graph-area{padding:0 4px}.key{padding-left:14px}.graphs{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.card-head{padding-top:15px}.graph-card svg{min-height:220px}.subtitle{font-size:14px}}
+    @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+  </style>
+</head>
+<body>
+<main class="wrap" id="app">
+  <header class="top">
+    <div>
+      <p class="eyebrow">Semantical / Interactive lab / POC 01</p>
+      <h1>Versionner un knowledge graph<br>sans dupliquer le graphe</h1>
+      <p class="subtitle muted">Démonstration locale d'un verrouillage pessimiste piloté par l'ontologie. Sélectionne Alice, déplace ses assertions essentielles et explore deux vues RDF cohérentes.</p>
+    </div>
+    <span class="pill"><span class="dot"></span> 100 % autonome · sans serveur</span>
+  </header>
+
+  <div id="notice" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <section class="layout">
+    <article class="card graph-card">
+      <div class="card-head">
+        <div><h2>Knowledge graph — vue logique</h2><p>Clique sur Alice pour démarrer une modification, ou utilise le bouton ci-dessous.</p></div>
+        <span id="view-label" class="counter">Version publiée · v100</span>
+      </div>
+      <div class="graph-area">
+        <svg viewBox="0 0 700 385" role="img" aria-label="Réseau RDF interactif comprenant Alice, Mary, deux organisations et John ou Sam">
+          <defs>
+            <marker id="arrow-essential" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#2791a0"></path></marker>
+            <marker id="arrow-optional" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#9aa8b9"></path></marker>
+          </defs>
+          <rect x="4" y="5" width="692" height="375" rx="15" class="graph-bg"></rect>
+          <rect x="36" y="85" width="238" height="235" rx="19" class="graph-border" id="alice-boundary"></rect>
+          <text x="49" y="107" font-size="11" fill="#7b8999" id="boundary-label">Frontière d’intégrité : Alice</text>
+          <g id="graph-edges"></g>
+          <g class="node primary" id="alice-node" role="button" tabindex="0" aria-label="Sélectionner Alice et démarrer une modification">
+            <rect x="71" y="151" width="163" height="73" rx="13"></rect>
+            <text x="152" y="180" text-anchor="middle" font-size="18">Alice</text>
+            <text x="152" y="199" text-anchor="middle" class="small">a :Employee</text>
+          </g>
+          <g id="graph-target-nodes"></g>
+          <g id="graph-birth-date"></g>
+          <text id="graph-lock" x="65" y="246" class="lock-marker" style="display:none">🔒 Alice : propriétés essentielles verrouillées</text>
+        </svg>
+      </div>
+      <div class="key"><span><i></i> Relation essentielle</span><span><i class="optional"></i> Relation indépendante</span><span>🔒 Verrou appliqué à Alice</span></div>
+      <div class="toolbar">
+        <button class="btn primary" id="lock">🔒 Travailler sur Alice</button>
+        <button class="btn" id="view-current">Vue actuelle</button>
+        <button class="btn" id="view-working">Vue modifiée</button>
+        <button class="btn" id="reset">Réinitialiser</button>
+      </div>
+    </article>
+
+    <aside class="card">
+      <div class="card-head"><div><h2>Ontologie minimale</h2><p>La frontière est dérivée ici d'une liste explicite de restrictions OWL, avec héritage.</p></div></div>
+      <div class="side-content">
+        <div class="ontology-row"><strong>:Person</strong><code>⊑ (=1 :birthDate)<br>⊑ (∃ :isChildOf . :Person)</code></div>
+        <div class="ontology-row"><strong>:Employee</strong><code>⊑ :Person<br>⊑ (=1 :worksFor . :Organization)</code></div>
+        <div class="ontology-row"><strong>:Organization</strong><code>a owl:Class</code></div>
+        <div class="label">Pour Alice · type :Employee</div>
+        <div id="essential-chips"><span class="chip">birthDate</span><span class="chip">isChildOf</span><span class="chip">worksFor</span></div>
+        <div class="label">Propriété non essentielle</div>
+        <span class="chip neutral">marriedTo</span>
+        <div class="state" id="lock-status">○ Aucun verrou actif. Toutes les assertions sont dans le graphe principal.</div>
+        <p class="hint">Ici, « essentielle » signifie <em>incluse dans la frontière d'intégrité de ce POC</em> en raison d'une restriction OWL de classe. OWL ne définit ni ownership ni locking. Les axiomes seuls ne remplacent pas une politique transactionnelle.</p>
+      </div>
+    </aside>
+  </section>
+
+  <section class="lower">
+    <article class="card">
+      <div class="card-head">
+        <div><h2>Stockage RDF : trois graphes nommés</h2><p>Les triplets essentiels sont retirés du principal, conservés intacts dans l'original et copiés dans le travail.</p></div>
+        <span id="counts" class="counter">10 / 0 / 0</span>
+      </div>
+      <div class="pane">
+        <div class="graphs">
+          <section class="graph-box"><h3>G principal</h3><div class="smallnote" id="count-main">10 triplets</div><div id="triples-main"></div></section>
+          <section class="graph-box"><h3>G original</h3><div class="smallnote" id="count-original">0 triplet</div><div id="triples-original"></div></section>
+          <section class="graph-box"><h3>G travail</h3><div class="smallnote" id="count-work">0 triplet</div><div id="triples-work"></div></section>
+        </div>
+        <p class="hint">Vue actuelle = G principal ∪ G original · Vue modifiée = G principal ∪ G travail. Les IRIs Alice, Mary et OrgA restent des ressources valides, même lorsque leurs assertions se trouvent dans des graphes différents.</p>
+      </div>
+    </article>
+    <article class="card">
+      <div class="card-head">
+        <div><h2>Vue combinée et différences</h2><p id="combined-caption">Toutes les assertions publiées.</p></div>
+        <span class="counter" id="combined-count">10 triplets</span>
+      </div>
+      <div class="pane">
+        <div id="combined-triples" class="triples"></div>
+        <div class="label">Impact de la modification</div>
+        <ul class="changes" id="change-list"><li>Aucune modification en cours.</li></ul>
+      </div>
+    </article>
+  </section>
+
+  <section class="lower">
+    <article class="card">
+      <div class="card-head">
+        <div><h2>Agent A — modification d'Alice</h2><p>Seules les valeurs du graphe de travail sont éditées. Chaque action peut être annulée.</p></div>
+      </div>
+      <div class="editor">
+        <label class="field">Objectif de la change request
+          <input type="text" id="change-reason" maxlength="160" value="Mettre à jour les informations essentielles d’Alice">
+        </label>
+        <div class="form-grid" style="margin-top:15px">
+          <label class="field">worksFor
+            <select id="edit-work"><option value="OrgA">OrgA</option><option value="OrgB">OrgB</option></select>
+          </label>
+          <label class="field">birthDate
+            <input id="edit-birth" type="date" min="1900-01-01" max="2100-12-31">
+          </label>
+          <label class="field">isChildOf
+            <select id="edit-parent"><option value="Mary">Mary</option><option value="Sam">Sam</option></select>
+          </label>
+        </div>
+        <div class="editor-actions">
+          <button class="btn primary" id="apply" disabled>Enregistrer dans G travail</button>
+          <button class="btn" id="undo" disabled>↶ Undo</button>
+          <button class="btn" id="merge" disabled>✓ Valider et fusionner</button>
+        </div>
+      </div>
+    </article>
+    <article class="card">
+      <div class="card-head"><div><h2>Agent B — modification concurrente</h2><p>Teste la frontière de verrouillage pendant qu'Alice est en cours d'édition.</p></div></div>
+      <div class="pane">
+        <button class="btn" id="agent-marriage">Modifier Alice marriedTo :John → :Sam</button>
+        <p class="hint" style="margin:8px 0 15px">Non essentielle : autorisée. Le changement est écrit dans G principal et visible dans les deux vues.</p>
+        <button class="btn danger" id="agent-work">Tenter de modifier Alice worksFor</button>
+        <p class="hint" style="margin:8px 0 15px">Essentielle : bloquée si Alice est verrouillée, même si l'agent utilise un autre graphe de travail.</p>
+        <div class="callout" id="agent-result">Commence par verrouiller Alice, puis essaye les deux opérations de l'agent B.</div>
+      </div>
+    </article>
+  </section>
+
+  <section class="card" style="margin-top:16px">
+    <div class="card-head"><div><h2>Journal de la change request</h2><p>Actions et décisions simulées dans cette session de navigateur.</p></div><span class="counter" id="version">Version v100</span></div>
+    <div class="audit" id="audit" aria-live="polite"><p class="empty">Aucune opération pour le moment.</p></div>
+  </section>
+
+  <footer class="foot">
+    <strong>Limites du prototype :</strong> tout fonctionne en mémoire dans ce fichier HTML, sans connexion à Apache Jena, sans serveur ni persistance au rechargement. Les restrictions OWL sont représentées par une configuration JavaScript explicite (pas de raisonneur OWL ni de validation SHACL). Une implémentation réelle nécessiterait des transactions Jena pour les déplacements, un service de verrous avec contrôle de toutes les écritures, une gestion des versions et une validation atomique au merge.
+  </footer>
+</main>
+<script>
+(function(){
+  'use strict';
+
+  // Simplification volontaire : les propriétés des restrictions OWL sont
+  // représentées explicitement, avec héritage par rdfs:subClassOf.
+  // Ce n'est PAS un moteur de raisonnement OWL.
+  var ontology = {
+    Person: {parent:null, essentials:['birthDate','isChildOf']},
+    Employee: {parent:'Person', essentials:['worksFor']},
+    Organization: {parent:null, essentials:[]}
+  };
+
+  function triple(s,p,o,literal){return {s:s,p:p,o:o,literal:!!literal};}
+  function seed(){
+    return [
+      triple('Alice','rdf:type','Employee'),
+      triple('Alice','birthDate','1990-05-12',true),
+      triple('Alice','isChildOf','Mary'),
+      triple('Alice','worksFor','OrgA'),
+      triple('Alice','marriedTo','John'),
+      triple('John','rdf:type','Person'),
+      triple('Mary','rdf:type','Person'),
+      triple('OrgA','rdf:type','Organization'),
+      triple('OrgB','rdf:type','Organization'),
+      triple('Sam','rdf:type','Person')
+    ];
+  }
+
+  var main, original, working, locked, view, undoStack, events, version;
+  function clone(xs){return xs.map(function(t){return triple(t.s,t.p,t.o,t.literal);});}
+  function essentials(type){
+    var result = new Set(), seen = new Set();
+    while(type && ontology[type] && !seen.has(type)){
+      seen.add(type);
+      ontology[type].essentials.forEach(function(p){result.add(p);});
+      type = ontology[type].parent;
+    }
+    return result;
+  }
+  function aliceType(){
+    var t = main.concat(original,working).find(function(x){return x.s==='Alice'&&x.p==='rdf:type';});
+    return t ? t.o : 'Employee';
+  }
+  function isEssential(t,scope){
+    return t.s===scope && (t.p==='rdf:type' || essentials(aliceType()).has(t.p));
+  }
+  function current(){return main.concat(original);}
+  function proposed(){return locked ? main.concat(working) : clone(main);}
+  function getProp(ts,s,p){return ts.find(function(t){return t.s===s&&t.p===p;});}
+  function getValue(ts,s,p){var t=getProp(ts,s,p);return t?t.o:'';}
+  function text(id,value){document.getElementById(id).textContent=value;}
+  function event(message,blocked){
+    events.unshift({message:message,blocked:!!blocked});
+    if(events.length>40)events.pop();
+  }
+  function notify(message,warning){
+    var el=document.getElementById('notice');
+    el.textContent=message;el.hidden=false;el.className='toast'+(warning?' warn':'');
+  }
+  function formatTriple(t){
+    return ':'+t.s+' '+(t.p==='rdf:type'?'a':':'+t.p)+' '+(t.literal?'"'+t.o+'"':':'+t.o)+' .';
+  }
+  function tripleLine(t){
+    var e=document.createElement('div');
+    e.className='triple';
+    e.textContent=formatTriple(t);
+    return e;
+  }
+  function fillTriples(id,arr){
+    var el=document.getElementById(id);el.replaceChildren();
+    if(!arr.length){var x=document.createElement('p');x.className='empty';x.textContent='∅ Aucun triplet';el.appendChild(x);return;}
+    arr.forEach(function(t){el.appendChild(tripleLine(t));});
+  }
+  function setControl(id,enabled){document.getElementById(id).disabled=!enabled;}
+  function addSvg(parent,tag,attrs,label){
+    var e=document.createElementNS('http://www.w3.org/2000/svg',tag);
+    Object.keys(attrs||{}).forEach(function(k){e.setAttribute(k,String(attrs[k]));});
+    if(label!==undefined)e.textContent=label;
+    parent.appendChild(e);return e;
+  }
+  function visual(){
+    var triples = view==='working'?proposed():current();
+    var edges = document.getElementById('graph-edges');
+    var targets = document.getElementById('graph-target-nodes');
+    var dateBox = document.getElementById('graph-birth-date');
+    edges.replaceChildren(); targets.replaceChildren(); dateBox.replaceChildren();
+    var destinations={
+      Mary:{y:76,label:'Mary',subtitle:'Person'},
+      Sam:{y:315,label:'Sam',subtitle:'Person'},
+      OrgA:{y:171,label:'Org A',subtitle:'Organization'},
+      OrgB:{y:250,label:'Org B',subtitle:'Organization'},
+      John:{y:315,label:'John',subtitle:'Person'}
+    };
+    var paths=[
+      {p:'isChildOf',essential:true,label:'isChildOf'},
+      {p:'worksFor',essential:true,label:'worksFor'},
+      {p:'marriedTo',essential:false,label:'marriedTo'}
+    ];
+    paths.forEach(function(r){
+      var dest=getValue(triples,'Alice',r.p);
+      var pos=destinations[dest];if(!pos)return;
+      var fromY=r.p==='isChildOf'?168:r.p==='worksFor'?189:207;
+      var startX=234, endX=505, endY=pos.y+17;
+      addSvg(edges,'path',{d:'M'+startX+' '+fromY+' C342 '+fromY+' 392 '+endY+' '+endX+' '+endY,'class':r.essential?'edge-essential':'edge-optional','marker-end':r.essential?'url(#arrow-essential)':'url(#arrow-optional)'});
+      var labelY = r.p==='isChildOf'?101:r.p==='worksFor'?(dest==='OrgA'?177:239):315;
+      addSvg(edges,'text',{x:348,y:labelY,'text-anchor':'middle','class':'edge-label'+(r.essential?'':' optional')},r.label);
+    });
+    // Ne dessiner que les cibles effectivement utilisées : les ressources non reliées
+    // continuent pourtant d'exister dans les triples du graphe.
+    var nodes=new Set(['Mary',getValue(triples,'Alice','worksFor'),getValue(triples,'Alice','marriedTo')]);
+    nodes.forEach(function(key){
+      var d=destinations[key];if(!d)return;
+      var g=addSvg(targets,'g',{'class':'node'});
+      addSvg(g,'rect',{x:506,y:d.y,width:151,height:45,rx:10});
+      addSvg(g,'text',{x:581,y:d.y+19,'text-anchor':'middle','font-size':14},d.label);
+      addSvg(g,'text',{x:581,y:d.y+33,'text-anchor':'middle','class':'small'},d.subtitle);
+    });
+    var birth=getValue(triples,'Alice','birthDate');
+    addSvg(dateBox,'rect',{x:87,y:268,width:132,height:34,rx:9,fill:'#e3f1f5',stroke:'#bfdae2'});
+    addSvg(dateBox,'text',{x:153,y:282,'text-anchor':'middle','font-size':10,fill:'#4b6c7b'},'birthDate');
+    addSvg(dateBox,'text',{x:153,y:295,'text-anchor':'middle','font-size':12,'font-weight':700,fill:'#206a78'},birth||'non précisée');
+    document.getElementById('alice-node').setAttribute('class','node primary'+(locked?' active':''));
+    document.getElementById('graph-lock').style.display=locked?'block':'none';
+    text('boundary-label',locked?'Frontière d’intégrité verrouillée : Alice':'Frontière d’intégrité : Alice');
+  }
+  function diff(){
+    if(!locked)return [];
+    var changed=[];
+    ['birthDate','isChildOf','worksFor'].forEach(function(p){
+      var a=getValue(original,'Alice',p),b=getValue(working,'Alice',p);
+      if(a!==b)changed.push('Alice.'+p+' : '+(a||'∅')+' → '+(b||'∅'));
+    });
+    return changed;
+  }
+  function render(){
+    text('count-main',main.length+' triplets');
+    text('count-original',original.length+' triplets');
+    text('count-work',working.length+' triplets');
+    text('counts',main.length+' / '+original.length+' / '+working.length);
+    text('version','Version v'+version);
+    fillTriples('triples-main',main);
+    fillTriples('triples-original',original);
+    fillTriples('triples-work',working);
+    var shown=view==='working'?proposed():current();
+    text('combined-count',shown.length+' triplets');
+    text('combined-caption',view==='working'&&locked?'G principal ∪ G travail (proposition)':'G principal ∪ G original (état publié)');
+    text('view-label',(view==='working'&&locked?'Travail non fusionné':'Version publiée')+' · v'+version);
+    fillTriples('combined-triples',shown);
+    document.getElementById('view-current').classList.toggle('selected',view==='current');
+    document.getElementById('view-working').classList.toggle('selected',view==='working');
+    setControl('view-working',locked);
+    setControl('lock',!locked);
+    setControl('apply',locked);
+    setControl('undo',locked&&undoStack.length>0);
+    setControl('merge',locked);
+    document.getElementById('lock').textContent=locked?'🔒 Alice verrouillée':'🔒 Travailler sur Alice';
+    var st=document.getElementById('lock-status');
+    st.className='state'+(locked?' locked':'');
+    st.textContent=locked?'🔒 Agent A détient le verrou Alice (type + propriétés essentielles). Les propriétés indépendantes restent libres.':'○ Aucun verrou actif. Toutes les assertions sont dans le graphe principal.';
+    var changeList=document.getElementById('change-list');changeList.replaceChildren();
+    var changes=diff();
+    if(changes.length===0){var li=document.createElement('li');li.textContent='Aucune différence dans les propriétés essentielles.';changeList.appendChild(li);}
+    else changes.forEach(function(v){var li=document.createElement('li');li.textContent=v;changeList.appendChild(li);});
+    var audit=document.getElementById('audit');audit.replaceChildren();
+    if(events.length===0){var placeholder=document.createElement('p');placeholder.className='empty';placeholder.textContent='Aucune opération pour le moment.';audit.appendChild(placeholder);}
+    events.forEach(function(e){
+      var row=document.createElement('div');row.className='audit-item'+(e.blocked?' blocked':'');
+      var icon=document.createElement('span');icon.className='bullet';icon.textContent=e.blocked?'!':'✓';
+      var body=document.createElement('span');body.textContent=e.message;row.appendChild(icon);row.appendChild(body);audit.appendChild(row);
+    });
+    visual();
+  }
+  function syncEditor(){
+    document.getElementById('edit-work').value=getValue(working,'Alice','worksFor')||'OrgA';
+    document.getElementById('edit-birth').value=getValue(working,'Alice','birthDate')||'';
+    document.getElementById('edit-parent').value=getValue(working,'Alice','isChildOf')||'Mary';
+  }
+  function start(){
+    if(locked)return;
+    // Emule une extraction atomique. Le code Jena réel devra l'effectuer
+    // dans une transaction et faire respecter les verrous par chaque écriture.
+    var pulled=main.filter(function(t){return isEssential(t,'Alice');});
+    main=main.filter(function(t){return !isEssential(t,'Alice');});
+    original=clone(pulled);
+    working=clone(pulled);
+    locked=true;view='working';undoStack=[];
+    syncEditor();
+    event('Agent A : verrouillage d’Alice. '+pulled.length+' assertions essentielles déplacées de G principal vers G original et copiées dans G travail.');
+    notify('Alice est verrouillée. Les triplets birthDate, isChildOf, worksFor et rdf:type ont été isolés.');
+    render();
+  }
+  function update(){
+    if(!locked)return;
+    var data=[
+      {p:'worksFor',o:document.getElementById('edit-work').value,literal:false},
+      {p:'birthDate',o:document.getElementById('edit-birth').value,literal:true},
+      {p:'isChildOf',o:document.getElementById('edit-parent').value,literal:false}
+    ];
+    var date=data[1].o;
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||isNaN(Date.parse(date))||new Date(date+'T00:00:00Z').toISOString().slice(0,10)!==date){
+      notify('La date de naissance doit être une date valide.',true);return;
+    }
+    var changes=data.filter(function(d){return getValue(working,'Alice',d.p)!==d.o;});
+    if(!changes.length){notify('Aucune différence à enregistrer dans G travail.');return;}
+    undoStack.push(clone(working));
+    changes.forEach(function(d){
+      working=working.filter(function(t){return !(t.s==='Alice'&&t.p===d.p);});
+      working.push(triple('Alice',d.p,d.o,d.literal));
+    });
+    event('Agent A : '+changes.map(function(d){return d.p+' = '+d.o;}).join(', ')+' (G travail uniquement).');
+    view='working';notify(changes.length+' propriété(s) mise(s) à jour dans G travail ; G original reste intact.');
+    render();
+  }
+  function undo(){
+    if(!locked||!undoStack.length)return;
+    working=undoStack.pop();syncEditor();
+    event('Agent A : Undo de la dernière édition du graphe de travail.');
+    notify('La dernière édition a été annulée ; G original et G principal sont inchangés.');
+    render();
+  }
+  function merge(){
+    if(!locked)return;
+    var impact=diff();
+    // Fusion logique. En production : transaction Jena, vérification du verrou
+    // et des versions, SHACL, journalisation et publication atomique.
+    main=main.concat(clone(working));
+    working=[];original=[];locked=false;undoStack=[];view='current';version++;
+    event('Agent A : fusion v'+version+'. '+(impact.length?impact.join(' ; '):'Aucune modification essentielle')+'. Objectif : '+document.getElementById('change-reason').value+'.');
+    notify('Modification fusionnée dans G principal (v'+version+'). Le verrou d’Alice est libéré.');
+    render();
+  }
+  function agentMarriage(){
+    var old=getValue(main,'Alice','marriedTo');
+    var next=old==='John'?'Sam':'John';
+    main=main.filter(function(t){return !(t.s==='Alice'&&t.p==='marriedTo');});
+    main.push(triple('Alice','marriedTo',next));
+    var msg='Agent B : marriedTo modifié de '+old+' vers '+next+' dans G principal (autorisé : indépendant du verrou).';
+    event(msg);text('agent-result',msg);notify('Agent B : modification indépendante acceptée, visible dans les deux vues.');render();
+  }
+  function agentEssential(){
+    if(locked){
+      var msg='Agent B : tentative de modifier Alice.worksFor REFUSÉE : Alice et ses propriétés essentielles sont verrouillées par Agent A.';
+      event(msg,true);text('agent-result',msg);notify(msg,true);render();return;
+    }
+    var old=getValue(main,'Alice','worksFor');
+    var next=old==='OrgA'?'OrgB':'OrgA';
+    main=main.filter(function(t){return !(t.s==='Alice'&&t.p==='worksFor');});
+    main.push(triple('Alice','worksFor',next));
+    version++;
+    var msg='Agent B : worksFor '+old+' → '+next+' (autorisé : aucun verrou actif). v'+version+'.';
+    event(msg);text('agent-result',msg);notify(msg);render();
+  }
+  function reset(){
+    main=seed();original=[];working=[];locked=false;view='current';undoStack=[];events=[];version=100;
+    document.getElementById('agent-result').textContent='Commence par verrouiller Alice, puis essaye les deux opérations de l’agent B.';
+    document.getElementById('change-reason').value='Mettre à jour les informations essentielles d’Alice';
+    document.getElementById('notice').hidden=true;
+    render();
+  }
+  document.getElementById('lock').addEventListener('click',start);
+  document.getElementById('alice-node').addEventListener('click',start);
+  document.getElementById('alice-node').addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();start();}});
+  document.getElementById('view-current').addEventListener('click',function(){view='current';render();});
+  document.getElementById('view-working').addEventListener('click',function(){if(locked){view='working';render();}});
+  document.getElementById('apply').addEventListener('click',update);
+  document.getElementById('undo').addEventListener('click',undo);
+  document.getElementById('merge').addEventListener('click',merge);
+  document.getElementById('agent-marriage').addEventListener('click',agentMarriage);
+  document.getElementById('agent-work').addEventListener('click',agentEssential);
+  document.getElementById('reset').addEventListener('click',reset);
+  reset();
+})();
+</script>
+</body>
+</html>
